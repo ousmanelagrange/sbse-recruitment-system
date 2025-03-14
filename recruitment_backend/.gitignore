@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django Migrations
+**/migrations/**
+
+# Environnement virtuel
+venv/
+.env
+
+# Logs
+*.log
+logs/
+*.out
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Cache
+*.swp
+*.swo
+
+# Fichiers compilés
+*.pyc
+
+# Docker
+*.bak
+*.backup
+docker-compose.override.yml
+
+# VSCode / IDE
+.vscode/
+.idea/
+
+# Cloudinary config
+cloudinary/
+cloudinary_cache/
+
+# Base de données SQLite (si utilisée)
+db.sqlite3
+
+# Static et media files générés
+staticfiles/
+media/
+
+# Fichiers de tests et coverage
+htmlcov/
+.coverage
+.tox/
