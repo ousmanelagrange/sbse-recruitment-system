@@ -3,18 +3,19 @@ from django.db import models
 
 # Modèle personnalisé pour l'utilisateur
 class User(AbstractUser):
-    CANDIDATE = 'CANDIDATE'
-    EMPLOYER = 'EMPLOYER'
+
     
     ROLE_CHOICES = [
-        (CANDIDATE, 'Candidate'),
-        (EMPLOYER, 'Employer'),
+        ('candidate', 'Candidate'),
+        ('employer', 'Employeur'),
     ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES) 
+
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
     USERNAME_FIELD = 'email'  # On utilise l'email comme identifiant
-    REQUIRED_FIELDS = []      # Aucun autre champ requis
+    REQUIRED_FIELDS = ['username']      # Aucun autre champ requis
     def __str__(self):
         return f"{self.username} ({self.get_role_display()})"
 
