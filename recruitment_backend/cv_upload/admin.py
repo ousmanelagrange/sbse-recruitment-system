@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import CVUpload
 
-# Register your models here.
+@admin.register(CVUpload)
+class CVUploadAdmin(admin.ModelAdmin):
+    list_display = ('file', 'uploaded_at')

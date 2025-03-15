@@ -1,4 +1,6 @@
-#!/home/lagrange/Bureau/M2-Projects/sbse-recruitment-system/venv/bin/python3
+#!/bin/sh
+'''exec' "/home/aureltoukam/Bureau/Master 2/projet SBSE/recruitement systeme/sbse-recruitment-system/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys
