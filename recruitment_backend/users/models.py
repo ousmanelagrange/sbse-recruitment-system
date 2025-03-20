@@ -10,7 +10,7 @@ class User(AbstractUser):
         ('employer', 'Employeur'),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES) 
-
+    name = models.CharField(max_length=30, blank=True)
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES)
     phone_number = models.CharField(max_length=15, blank=True, null=True)
@@ -23,9 +23,7 @@ class User(AbstractUser):
 class CandidateProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='candidate_profile')
     cv = models.FileField(upload_to='cv/', blank=True, null=True)  # Stockage local des CV
-    skills = models.JSONField(default=dict)  # Liste des compétences sous forme JSON
-    experience = models.TextField(blank=True)  # Expérience professionnelle
-    
+    bio = models.TextField(blank=True)    
     def __str__(self):
         return f"Candidate Profile: {self.user.username}"
 
@@ -34,7 +32,6 @@ class EmployerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='employer_profile')
     company_name = models.CharField(max_length=255)
     sector = models.CharField(max_length=100)
-    position = models.CharField(max_length=100)
-    
+    description = models.TextField(blank=True)    
     def __str__(self):
         return f"Employer Profile: {self.user.username} - {self.company_name}"
