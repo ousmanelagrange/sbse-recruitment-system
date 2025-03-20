@@ -4,8 +4,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action 
 from rest_framework import serializers
 from .models import Job, Constraint, SkillRequirement, CandidateApplication 
-from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer 
+from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer, CandidateApplicationSerializer
+from .ahp import calculate_candidate_score
 
+
+# Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer 
@@ -86,3 +89,68 @@ class JobViewSet(viewsets.ModelViewSet):
         skills = SkillRequirement.objects.filter(job=job)
         serializer = SkillRequirementSerializer(skills, many=True)
         return Response(serializer.data)
+
+
+
+# Candidation à une offre par l'utilisateur
+class CandateApplicationViewSet(viewsets.ModelViewSet):
+    queryset = CandidateApplication.objects.all()
+    serializer_class = CandidateApplicationSerializer
+    permission_classes = [AllowAny]
+    # Soumission d'une nouvelle candidature
+    def create(self, request, *args, **kwargs):
+        job_id = request.data.get('job')
+        candidate = request.user.candidate_profile 
+        
+        try:
+            job = Job.objects.get(id=job_id, status='open')
+        except Job.DoesNotExist:
+            return Response({"details": "Offre d'emploi non fermée."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Verifier si le candidat a déjà ce job
+        if CandidateApplication.objects.filter(candidate=candidate, job=job).exists():
+            return Response({"detail": "Vous avez déjà postulé à cette offre."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Calcul du score avec AHP 
+        score = calculate_candidate_score(candidate, job)
+        
+        # Créer la candidature
+        application = CandidateApplication.objects.create(
+            candidate=candidate,
+            job=job,
+            score=score
+        )
+        
+        # Mettre à jour le classement après l'ajout de la nouvelle candidature 
+        self.update_rankings(job)
+        
+        serializer = self.get_serializer(application)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])    
+    def my_applications(self, request):
+        """
+        Lister les candidature du candidat connecté
+        """
+        candidate = request.user.candidate_profile
+        applications = CandidateApplication.objects.filter(candidate=candidate)
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    def list_for_job(self, request, pk=None):
+        """
+        Lister toutes les candidatures pour une offre spécifique
+        """
+        job = self.get_object()
+        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        serializer = self.get_serializer(applications, many=True)
+        return Response(serializer.data)
+    
+    
+    def update_rankings(self, job):
+        """Mise à jour du classement des candidatures après une nouvelle soumission"""
+        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        for rank, application in enumerate(applications, start=1):
+            application.rank = rank
+            application.save()   
