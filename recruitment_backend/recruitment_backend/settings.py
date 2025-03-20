@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'candidate_ranking',
     'users',
     'authentication',
+    'jobs'
 ]
 
 
