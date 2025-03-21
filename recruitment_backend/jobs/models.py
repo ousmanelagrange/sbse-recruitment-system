@@ -51,7 +51,7 @@ class Constraint(models.Model):
     weight = models.FloatField(default=1.0) #Poids de la contrainte dans le calcul du score (pour AHP)
     
     def __str__(self):
-        return f"{self.name} - ({self.get_type_display()})"
+        return f"{self.description} - ({self.get_type_display()})"
     
 """
 ➡️ Ce modèle permettra de spécifier les compétences attendues pour un poste donné.
@@ -95,7 +95,7 @@ class CandidateApplication(models.Model):
         related_name='applications'
     )
     score = models.FloatField() #score généré par AHP
-    rank = models.IntegerField() # classement
+    rank = models.IntegerField(null=True, blank=True) # classement
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)    
     
