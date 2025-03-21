@@ -105,7 +105,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         try:
             job = Job.objects.get(id=job_id, status='open')
         except Job.DoesNotExist:
-            return Response({"details": "Offre d'emploi non fermée ou inexistante."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"details": "Offre d'emploi non fermée."}, status=status.HTTP_404_NOT_FOUND)
         
         # Verifier si le candidat a déjà ce job
         if CandidateApplication.objects.filter(candidate=candidate, job=job).exists():
@@ -142,7 +142,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         """
         Lister toutes les candidatures pour une offre spécifique
         """
-        job = Job.objects.get(id=pk)
+        job = self.get_object()
         applications = CandidateApplication.objects.filter(job=job).order_by('-score')
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
