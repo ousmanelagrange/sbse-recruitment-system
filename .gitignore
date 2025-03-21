@@ -297,3 +297,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .qodo
+# Environnement virtuel
+venv/
+# Base de données SQLite
+*.sqlite3
