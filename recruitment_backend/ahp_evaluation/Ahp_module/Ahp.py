@@ -37,7 +37,7 @@ class PCAAnalyzerWithSelection:
 
         return errors
 
-    def _calculate_criteria_score(self, cv, criteria):
+    def #_calculate_criteria_score(self, cv, criteria):
         """Calcule un score personnalisé basé sur les critères employeur"""
         return sum(cv.lower().count(crit.lower()) for crit in criteria)
 
@@ -49,31 +49,35 @@ class PCAAnalyzerWithSelection:
 
         # Extraction des caractéristiques
         tfidf_matrix = self.vectorizer.fit_transform(cvs).toarray()
-
+        print('Extraction des caractéristiques')
+        # print(tfidf_matrix)
         # Calcul des scores de critères
         criteria_scores = np.array([
             [self._calculate_criteria_score(cv, employer_criteria)]
             for cv in cvs
         ])
-
+        print('Calcul des scores de critères')
+        # print(criteria_scores)
         # Combinaison des caractéristiques
         features = np.hstack((tfidf_matrix, criteria_scores))
-
+        print('Combinaison des caractéristiques')
+        # print(criteria_scores)
         # Normalisation et ACP
         scaled = self.scaler.fit_transform(features)
         pca_results = self.pca.fit_transform(scaled)
-
+        print('Normalisation et ACP')
+        # print(criteria_scores)
         # Création du DataFrame avec scores
         df = pd.DataFrame(
             pca_results,
             columns=[f"PC{i+1}" for i in range(self.n_components)]
         )
         df['Critère_Score'] = criteria_scores
-        df['CV'] = [f"Candidat {i+1}" for i in range(len(cvs))]
+        df['CV'] = [f"Candidat {i + 1}" for i in range(len(cvs))]
 
         # Sélection basée sur la position dans l'espace PCA et les scores
-        mean_scores = df[['PC1', 'Critère_Score']].mean(axis=1)
-        self.selected_candidates = df[mean_scores > threshold * mean_scores.max()]['CV'].tolist()
+        mean_scores = pca_results.mean(axis=1)
+        self.selected_candidates = df[mean_scores >= threshold * mean_scores.max()]['CV'].tolist()
 
         return df, self.pca.explained_variance_ratio_, self.selected_candidates
 
@@ -143,14 +147,14 @@ if __name__ == "__main__":
 
 
     # Critères définis par l'employeur (optionnel)
-    # employer_criteria = ["python", "machine learning", "data", "java", "react"]
+    employer_criteria = ["python", "machine learning", "data", "java", "react"]
 
-    employer_needs = ["python", "machine learning", "data", "JavaScript", "react"]
+    employer_needs = ["python", "machine learning", "data", "java", "react", 'master', 'expert', 'développeur', 'ingénieur', 'développeuse', 'expert', 'spécialiste', 'expertise']
 
-    analyzer = PCAAnalyzerWithSelection(n_components=10)
-    results, variance, selected = analyzer.process_and_select(cv_examples, employer_needs)
+    analyzer = PCAAnalyzerWithSelection(n_components=9)
+    results, variance, selected = analyzer.process_and_select(cv_examples, employer_criteria)
 
     print("Résultats PCA avec scores :")
-    print(results)
-    print("\nCandidats sélectionnés :", selected)
-    print("Variance expliquée :", variance)
+    print(results.sort_values('Critère_Score', ascending=False))
+    # print("\nCandidats sélectionnés :", selected)
+    # print("Variance expliquée :", variance)
