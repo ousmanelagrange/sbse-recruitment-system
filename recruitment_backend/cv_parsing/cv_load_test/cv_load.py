@@ -29,6 +29,6 @@ def ask_question_from_pdf(pdf_path, question):
 
 # Exemple d'utilisation
 pdf_path = r"C:\Users\NICK-TECH\Downloads\Documents\DONGMO.pdf"
-question = "Quelles sont les compétences du candidat ?"
+question = "Quelles sont les compétences du candidat en json ? je ne veux ni commentaire ni explication ni label. je veux juste le json"
 answer = ask_question_from_pdf(pdf_path, question)
 print(answer)
