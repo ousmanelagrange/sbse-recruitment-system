@@ -2,7 +2,7 @@ import openai
 import pdfplumber
 
 # Configurez votre clé API OpenAI
-openai.api_key = 'Bearer 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'
+openai.api_key = 'cle_api'
 
 def extract_text_from_pdf(pdf_path):
     with pdfplumber.open(pdf_path) as pdf:
