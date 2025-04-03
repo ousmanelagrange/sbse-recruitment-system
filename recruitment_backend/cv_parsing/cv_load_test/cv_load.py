@@ -35,38 +35,84 @@
 # print(answer)
 
 
-import pdfplumber
-from transformers import pipeline
+# import pdfplumber
+# from transformers import pipeline
 
-# Charger le modèle GPT-2 via Hugging Face
-generator = pipeline("text-generation", model="gpt2")
+# # Charger le modèle GPT-2 via Hugging Face
+# generator = pipeline("text-generation", model="gpt2")
 
-# Fonction pour extraire le texte du PDF
-def extract_text_from_pdf(pdf_path):
-    with pdfplumber.open(pdf_path) as pdf:
-        text = ""
-        for page in pdf.pages:
-            text += page.extract_text()
-    return text
+# # Fonction pour extraire le texte du PDF
+# def extract_text_from_pdf(pdf_path):
+#     with pdfplumber.open(pdf_path) as pdf:
+#         text = ""
+#         for page in pdf.pages:
+#             text += page.extract_text()
+#     return text
 
-# Fonction pour poser une question à GPT-2 et obtenir une réponse
-def ask_question_from_pdf(pdf_path, question):
-    # Extraire le texte du PDF
-    pdf_text = extract_text_from_pdf(pdf_path)
+# # Fonction pour poser une question à GPT-2 et obtenir une réponse
+# def ask_question_from_pdf(pdf_path, question):
+#     # Extraire le texte du PDF
+#     pdf_text = extract_text_from_pdf(pdf_path)
 
-    # Créer un prompt à partir du contenu du PDF et de la question
-    prompt = f"Voici le contenu du CV :\n{pdf_text}\n\nQuestion : {question}"
+#     # Créer un prompt à partir du contenu du PDF et de la question
+#     prompt = f"Voici le contenu du CV :\n{pdf_text}\n\nQuestion : {question}"
 
-    # Utiliser GPT-2 pour générer une réponse
-    response = generator(prompt, max_length=500, num_return_sequences=1)
+#     # Utiliser GPT-2 pour générer une réponse
+#     response = generator(prompt, max_length=500, num_return_sequences=1)
 
-    # Renvoyer la réponse générée par GPT-2
-    return response[0]['generated_text']
+#     # Renvoyer la réponse générée par GPT-2
+#     return response[0]['generated_text']
 
-# Exemple d'utilisation
-pdf_path = r"C:\Users\NICK-TECH\Downloads\Documents\DONGMO.pdf"
-question = "Quelles sont les compétences du candidat en json ? je ne veux ni commentaire ni explication ni label. je veux juste le json"
-question = "Resolver l'equation x+1=2"
-answer = ask_question_from_pdf(pdf_path, question)
-print("La reponse: \n")
-print(answer)
+# # Exemple d'utilisation
+# pdf_path = r"C:\Users\NICK-TECH\Downloads\Documents\DONGMO.pdf"
+# question = "Quelles sont les compétences du candidat en json ? je ne veux ni commentaire ni explication ni label. je veux juste le json"
+# question = "Resolver l'equation x+1=2"
+# answer = ask_question_from_pdf(pdf_path, question)
+# print("La reponse: \n")
+# print(answer)
+
+
+import requests
+import json
+
+import os
+
+# Charger les variables d'environnement depuis le fichier .env
+
+
+# Récupérer la clé API depuis la variable d'environnement
+API_KEY = ""
+API_KEY = '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'
+
+
+# URL de l'API OpenAI
+API_URL = 'https://api.openai.com/v1/chat/completions'
+
+def get_chatgpt_response(message):
+    headers = {
+        'Content-Type': 'application/json',
+        'Authorization': f'Bearer {API_KEY}'
+    }
+
+    data = {
+        "model": "tts-1",  # ou "gpt-4"
+        "messages": [{"role": "user", "content": message}]
+    }
+
+    response = requests.post(API_URL, headers=headers, data=json.dumps(data))
+
+    if response.status_code == 200:
+        response_data = response.json()
+        return response_data['choices'][0]['message']['content']
+    else:
+        print(f"Erreur {response.status_code}: {response.text}")
+        return None
+
+if __name__ == "__main__":
+    user_message = input("User message: ")
+    gpt_response = get_chatgpt_response(user_message)
+    
+    if gpt_response:
+        print("Réponse de ChatGPT:", gpt_response)
+    else:
+        print("Erreur lors de la récupération de la réponse.")
