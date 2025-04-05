@@ -26,45 +26,104 @@ candidates = [
     {"name": "Liam", "java_skills": 4, "experience": 5, "database_skills": 3, "languages": 4, "references": 3}
 ]
 
-# Fonction pour calculer le score AHP (fonction objectif)
-def calculate_ahp_score(candidate):
+# Normalisation des valeurs entre 0 et 1
+def normalize(value, min_value, max_value):
     """
-    Calcule le score AHP d'un candidat en fonction des critères pondérés.
-    Ce score représente la capacité du candidat à répondre aux exigences de l'offre d'emploi.
+    Normalise une valeur dans une plage spécifique [min_value, max_value].
+    Renvoie une valeur normalisée entre 0 et 1.
     """
-    score = (
-        candidate["java_skills"] * weights["java_skills"] +
-        candidate["experience"] * weights["experience"] +
-        candidate["database_skills"] * weights["database_skills"] +
-        candidate["languages"] * weights["languages"] +
-        candidate["references"] * weights["references"]
-    )
-    return score
+    return (value - min_value) / (max_value - min_value) if max_value > min_value else 0
 
-# Calcul des scores AHP pour chaque candidat
+# Fonction de satisfaction
+def satisfaction_function(candidate):
+    """
+    Calcule le niveau de satisfaction d'un candidat.
+    La satisfaction est basée sur la somme des caractéristiques pondérées.
+    
+    Formule utilisée :
+        satisfaction = Σ (valeur_caractéristique_normalisée * poids_correspondant)
+    
+    Objectif : Maximiser cette valeur.
+    """
+    # Valeurs minimales et maximales pour chaque caractéristique
+    min_max_values = {
+        "java_skills": (3, 8),
+        "experience": (4, 9),
+        "database_skills": (2, 6),
+        "languages": (2, 5),
+        "references": (2, 5)
+    }
+
+    # Calcul du score normalisé pour chaque caractéristique
+    normalized_scores = {
+        key: normalize(candidate[key], min_max_values[key][0], min_max_values[key][1])
+        for key in weights.keys()
+    }
+
+    # Satisfaction totale
+    satisfaction = sum(normalized_scores[key] * weights[key] for key in weights.keys())
+    return satisfaction
+
+# Fonction de conflit
+def conflict_function(candidate):
+    """
+    Calcule le niveau de conflit d'un candidat.
+    Un conflit survient lorsque certaines caractéristiques ne respectent pas les exigences minimales.
+    
+    Formule utilisée :
+        conflit = Σ (pénalités pour chaque critère non satisfait)
+    
+    Objectif : Minimiser cette valeur (idéalement proche de 0).
+    """
+    conflict = 0
+    if candidate["java_skills"] < 4:  # Conflit pour compétences en Java insuffisantes
+        conflict += 1
+    if candidate["experience"] < 5:  # Conflit pour expérience insuffisante
+        conflict += 1
+    if candidate["database_skills"] < 3:  # Conflit pour connaissances en bases de données insuffisantes
+        conflict += 1
+    return conflict
+
+# Fonction fitness modulaire et optimale
+def fitness(individual):
+    """
+    Calcule le score fitness d'un candidat en combinant la fonction de satisfaction
+    et la fonction de conflit.
+    
+    Formule utilisée :
+        fitness = satisfaction - (conflit * facteur_pénalité)
+    
+    Objectif : Maximiser cette valeur.
+    """
+    satisfaction = satisfaction_function(individual)
+    conflict = conflict_function(individual)
+    penalty_factor = 0.5  # Facteur de pénalité pour les conflits
+    return satisfaction - (conflict * penalty_factor)
+
+# Calcul des scores fitness pour chaque candidat
 for candidate in candidates:
-    candidate["ahp_score"] = calculate_ahp_score(candidate)
+    candidate["fitness_score"] = fitness(candidate)
 
-# Tri des candidats par score AHP décroissant
-sorted_candidates = sorted(candidates, key=lambda x: x["ahp_score"], reverse=True)
+# Tri des candidats par score fitness décroissant
+sorted_candidates = sorted(candidates, key=lambda x: x["fitness_score"], reverse=True)
 
-# Affichage des meilleurs candidats après AHP
-print("Meilleurs candidats sélectionnés après AHP (population initiale) :")
+# Affichage des meilleurs candidats après calcul du fitness
+print("Meilleurs candidats sélectionnés après calcul du fitness (population initiale) :")
 for i, candidate in enumerate(sorted_candidates[:10], start=1):
-    print(f"{i}. {candidate['name']} - Score AHP : {candidate['ahp_score']:.2f}")
+    print(f"{i}. {candidate['name']} - Score Fitness : {candidate['fitness_score']:.2f}")
     print(f"   Raison : Fortes compétences en Java ({candidate['java_skills']}), "
           f"expérience solide ({candidate['experience']}), "
           f"bonnes connaissances en bases de données ({candidate['database_skills']}).\n")
 
-# Graphique représentatif des scores AHP
+# Graphique représentatif des scores fitness
 names = [candidate["name"] for candidate in sorted_candidates]
-scores = [candidate["ahp_score"] for candidate in sorted_candidates]
+scores = [candidate["fitness_score"] for candidate in sorted_candidates]
 
 plt.figure(figsize=(12, 6))
 plt.bar(names, scores, color='skyblue')
-plt.title("Scores AHP des candidats")
+plt.title("Scores Fitness des candidats")
 plt.xlabel("Candidats")
-plt.ylabel("Score AHP")
+plt.ylabel("Score Fitness")
 plt.xticks(rotation=45)
 plt.grid(axis='y', linestyle='--', alpha=0.7)
 plt.tight_layout()
@@ -74,18 +133,10 @@ plt.show()
 initial_population = sorted_candidates[:10]
 
 # Paramètres de l'algorithme génétique
-POPULATION_SIZE = 10  # Taille de la population
-GENERATIONS = 10      # Nombre de générations
+POPULATION_SIZE = 15  # Augmentation de la taille de la population pour plus de diversité
+GENERATIONS = 20      # Augmentation du nombre de générations pour mieux converger
 CROSSOVER_RATE = 0.8  # Probabilité de croisement
-MUTATION_RATE = 0.1   # Probabilité de mutation
-
-# Fonction fitness (basée sur le score AHP)
-def fitness(individual):
-    """
-    La fonction fitness évalue à quel point un individu (candidat) répond aux exigences de l'offre d'emploi.
-    Plus le score est élevé, plus le candidat est adapté.
-    """
-    return individual["ahp_score"]
+MUTATION_RATE = 0.2   # Augmentation légère de la probabilité de mutation
 
 # Sélection par tournoi
 def tournament_selection(population, k=3):
@@ -94,7 +145,7 @@ def tournament_selection(population, k=3):
     Le candidat avec le score fitness le plus élevé est retenu.
     """
     selected = random.sample(population, k)
-    return max(selected, key=fitness)
+    return max(selected, key=lambda x: fitness(x))
 
 # Croisement à un point
 def single_point_crossover(parent1, parent2):
@@ -111,10 +162,22 @@ def single_point_crossover(parent1, parent2):
 def mutate(individual):
     """
     Modifie aléatoirement une caractéristique d'un individu pour introduire de la diversité.
+    Les modifications sont limitées pour éviter des valeurs invalides.
     """
     attribute = random.choice(list(individual.keys()))
     if isinstance(individual[attribute], int):
         individual[attribute] += random.choice([-1, 1])
+        # Assure que les valeurs restent dans des plages valides
+        if attribute == "java_skills":
+            individual[attribute] = max(1, min(10, individual[attribute]))
+        elif attribute == "experience":
+            individual[attribute] = max(1, min(10, individual[attribute]))
+        elif attribute == "database_skills":
+            individual[attribute] = max(1, min(10, individual[attribute]))
+        elif attribute == "languages":
+            individual[attribute] = max(1, min(5, individual[attribute]))
+        elif attribute == "references":
+            individual[attribute] = max(1, min(5, individual[attribute]))
     return individual
 
 # Algorithme génétique principal
@@ -148,7 +211,7 @@ def genetic_algorithm():
         population = new_population
 
         # Suivi du meilleur individu de cette génération
-        current_best = max(population, key=fitness)
+        current_best = max(population, key=lambda x: fitness(x))
         if fitness(current_best) > best_fitness:
             best_individual = current_best
             best_fitness = fitness(current_best)
@@ -162,7 +225,7 @@ def genetic_algorithm():
     plt.plot(generations, scores, marker='o', color='b')
     plt.title("Évolution du meilleur score par génération")
     plt.xlabel("Génération")
-    plt.ylabel("Meilleur score AHP")
+    plt.ylabel("Meilleur score Fitness")
     plt.xticks(generations)
     plt.grid()
     plt.show()
@@ -173,7 +236,7 @@ def genetic_algorithm():
 best_candidate = genetic_algorithm()
 print("\nMeilleur candidat trouvé après l'algorithme génétique :")
 print(f"Nom : {best_candidate['name']}")
-print(f"Score AHP : {best_candidate['ahp_score']:.2f}")
+print(f"Score Fitness : {best_candidate['fitness_score']:.2f}")
 print("Raisons :")
 print(f"- Excellentes compétences en Java ({best_candidate['java_skills']}) correspondant à la priorité 1.")
 print(f"- Expérience professionnelle solide ({best_candidate['experience']}) correspondant à la priorité 2.")
