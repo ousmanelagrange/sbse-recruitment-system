@@ -6,13 +6,13 @@ from rest_framework import serializers
 from .models import Job, Constraint, SkillRequirement, CandidateApplication 
 from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer, CandidateApplicationSerializer
 from .ahp import calculate_candidate_score
-
+from users.permissions import IsEmployer
 
 # Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsEmployer]
     
     def get_queryset(self):
         # ✅ Retourner toutes les offres sans filtrage par défaut
@@ -20,24 +20,12 @@ class JobViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         user = self.request.user
-        
-        # ✅ Vérifier si l'utilisateur a un profil employeur
+
         if not hasattr(user, 'employer_profile'):
-            raise serializers.ValidationError({'detail': 'L\'utilisateur n\'a pas de profil employeur associé.'})
-        
-        # ✅ Créer le job
-        job = serializer.save(employer=user.employer_profile)
-        print(f"Job créé : {job}")
-        
-        # ✅ Ajouter les contraintes et compétences manuellement
-        constraints_data = self.request.data.get('constraints', [])
-        skills_data = self.request.data.get('skill_requirements', [])
-        
-        for constraint_data in constraints_data:
-            Constraint.objects.create(job=job, **constraint_data)
-        
-        for skill_data in skills_data:
-            SkillRequirement.objects.create(job=job, **skill_data)
+            raise serializers.ValidationError({'detail': "L'utilisateur n'a pas de profil employeur associé."})
+
+        serializer.save(employer=user.employer_profile)
+
     
     def update(self, request, *args, **kwargs):
         """
@@ -118,7 +106,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         application = CandidateApplication.objects.create(
             candidate=candidate,
             job=job,
-            score=score
+            ahp_score=score
         )
         
         # Mettre à jour le classement après l'ajout de la nouvelle candidature 

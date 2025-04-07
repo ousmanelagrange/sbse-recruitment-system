@@ -72,4 +72,4 @@ class CandidateApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CandidateApplication 
         fields = '__all__'
-        read_only_fields = ['score', 'rank', 'created_at']
+        read_only_fields = ['ahp_score', 'ag_score', 'rank', 'created_at']
