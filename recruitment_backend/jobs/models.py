@@ -94,8 +94,8 @@ class CandidateApplication(models.Model):
         on_delete=models.CASCADE,
         related_name='applications'
     )
-    ahp_score = models.FloatField() #score généré par AHP
-    ag_score = models.FloatField() #score généré par AG
+    ahp_score = models.FloatField(null=True, blank=True) #score généré par AHP
+    ag_score = models.FloatField(null=True, blank=True) #score généré par AG
 
     rank = models.IntegerField(null=True, blank=True) # classement
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

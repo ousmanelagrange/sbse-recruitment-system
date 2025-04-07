@@ -100,13 +100,13 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Vous avez déjà postulé à cette offre."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Calcul du score avec AHP 
-        score = calculate_candidate_score(candidate, job)
+        ahp_score = calculate_candidate_score(candidate, job)
         
         # Créer la candidature
         application = CandidateApplication.objects.create(
             candidate=candidate,
             job=job,
-            ahp_score=score
+            ahp_score=ahp_score
         )
         
         # Mettre à jour le classement après l'ajout de la nouvelle candidature 
@@ -131,14 +131,14 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         Lister toutes les candidatures pour une offre spécifique
         """
         job = Job.objects.get(id=pk)
-        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        applications = CandidateApplication.objects.filter(job=job).order_by('-ahp_score')
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
     
     
     def update_rankings(self, job):
         """Mise à jour du classement des candidatures après une nouvelle soumission"""
-        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        applications = CandidateApplication.objects.filter(job=job).order_by('-ahp_score')
         for rank, application in enumerate(applications, start=1):
             application.rank = rank
             application.save()   
