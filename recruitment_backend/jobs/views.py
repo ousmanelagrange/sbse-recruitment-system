@@ -13,6 +13,7 @@ class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer 
     permission_classes = [IsAuthenticated, IsEmployer]
+    # Filtrage des offres par employeur
     
     def get_queryset(self):
         # ✅ Retourner toutes les offres sans filtrage par défaut
@@ -79,6 +80,12 @@ class JobViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+# Affichage des différents d'emplois postés par les candidats
+class JobListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Job.objects.all()
+    serializer_class = JobSerializer
+    permission_classes = [AllowAny]
+    
 
 # Candidation à une offre par l'utilisateur
 class CandateApplicationViewSet(viewsets.ModelViewSet):
