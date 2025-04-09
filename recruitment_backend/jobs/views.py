@@ -132,7 +132,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    @action(detail=True, methods=['get'], permission_classes=[IsEmployer])
     def list_for_job(self, request, pk=None):
         """
         Lister toutes les candidatures pour une offre spécifique
