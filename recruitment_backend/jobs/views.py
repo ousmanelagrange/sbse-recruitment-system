@@ -6,7 +6,7 @@ from rest_framework import serializers
 from .models import Job, Constraint, SkillRequirement, CandidateApplication 
 from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer, CandidateApplicationSerializer
 from .ahp import calculate_candidate_score
-from users.permissions import IsEmployer
+from users.permissions import IsEmployer, IsCandidate
 
 # Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
@@ -122,7 +122,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(application)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    @action(detail=False, methods=['get'], permission_classes=[AllowAny])    
+    @action(detail=False, methods=['get'], permission_classes=[IsCandidate])    
     def my_applications(self, request):
         """
         Lister les candidature du candidat connecté
