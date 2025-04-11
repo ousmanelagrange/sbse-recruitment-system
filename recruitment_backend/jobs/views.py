@@ -7,6 +7,8 @@ from .models import Job, Constraint, SkillRequirement, CandidateApplication
 from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer, CandidateApplicationSerializer
 from .ahp import calculate_candidate_score
 from users.permissions import IsEmployer, IsCandidate
+from users.models import CandidateProfile, EmployerProfile, User
+
 
 # Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
@@ -16,9 +18,22 @@ class JobViewSet(viewsets.ModelViewSet):
     # Filtrage des offres par employeur
     
     def get_queryset(self):
+        #user = User.objects.filter(id=self.request.user.id)
+        #employer = EmployerProfile.objects.filter(user=user )
         # ✅ Retourner toutes les offres sans filtrage par défaut
-        return Job.objects.all().order_by('-created_at')
-
+        #return Job.objects.filter(employer=employer).order_by('-created_at')
+        
+        # Récupère l'utilisateur connecté (instance unique)
+        user = self.request.user
+         
+        # Vérifie si l'utilisateur a un profil employeur
+        if not hasattr(user, 'employer_profile'):
+            return Job.objects.none() # Retourne un queryset vide si pas de profil employer
+        employer = user.employer_profile
+        
+        # Filtre les offres par cet employeur
+        return Job.objects.filter(employer=employer).order_by('-created_at')    
+        
     def perform_create(self, serializer):
         user = self.request.user
 
