@@ -182,7 +182,7 @@ def mutate(individual):
 
 # Algorithme génétique principal
 def genetic_algorithm():
-    population = initial_population
+    population = l_population
     best_individual = None
     best_fitness = float('-inf')
     best_per_generation = []  # Pour suivre le meilleur individu de chaque génération
