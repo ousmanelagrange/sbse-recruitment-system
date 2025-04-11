@@ -6,38 +6,56 @@ from rest_framework import serializers
 from .models import Job, Constraint, SkillRequirement, CandidateApplication 
 from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSerializer, CandidateApplicationSerializer
 from .ahp import calculate_candidate_score
+from users.permissions import IsEmployer, IsCandidate
+from users.models import CandidateProfile, EmployerProfile, User
 
 
 # Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
     queryset = Job.objects.all()
     serializer_class = JobSerializer 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsEmployer]
+    # Filtrage des offres par employeur
     
     def get_queryset(self):
+        #user = User.objects.filter(id=self.request.user.id)
+        #employer = EmployerProfile.objects.filter(user=user )
         # ✅ Retourner toutes les offres sans filtrage par défaut
-        return Job.objects.all().order_by('-created_at')
-
+        #return Job.objects.filter(employer=employer).order_by('-created_at')
+        
+        # Récupère l'utilisateur connecté (instance unique)
+        user = self.request.user
+         
+        # Vérifie si l'utilisateur a un profil employeur
+        if not hasattr(user, 'employer_profile'):
+            return Job.objects.none() # Retourne un queryset vide si pas de profil employer
+        employer = user.employer_profile
+        
+        # Filtre les offres par cet employeur
+        return Job.objects.filter(employer=employer).order_by('-created_at')    
+        
     def perform_create(self, serializer):
         user = self.request.user
-        
-        # ✅ Vérifier si l'utilisateur a un profil employeur
+
         if not hasattr(user, 'employer_profile'):
-            raise serializers.ValidationError({'detail': 'L\'utilisateur n\'a pas de profil employeur associé.'})
-        
-        # ✅ Créer le job
-        job = serializer.save(employer=user.employer_profile)
-        print(f"Job créé : {job}")
-        
-        # ✅ Ajouter les contraintes et compétences manuellement
-        constraints_data = self.request.data.get('constraints', [])
-        skills_data = self.request.data.get('skill_requirements', [])
-        
-        for constraint_data in constraints_data:
-            Constraint.objects.create(job=job, **constraint_data)
-        
-        for skill_data in skills_data:
-            SkillRequirement.objects.create(job=job, **skill_data)
+            raise serializers.ValidationError({'detail': "L'utilisateur n'a pas de profil employeur associé."})
+
+        serializer.save(employer=user.employer_profile)
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Activer/Désactiver une offre"""
+        job = self.get_object()
+        job.is_active = not job.is_active
+        job.save()
+        return Response({'status': 'success', 'is_active': job.is_active})
+
+    @action(detail=False, methods=['get'])
+    def active_jobs(self, request):
+        """Liste des offres actives"""
+        jobs = self.get_queryset().filter(is_active=True)
+        serializer = self.get_serializer(jobs, many=True)
+        return Response(serializer.data)
     
     def update(self, request, *args, **kwargs):
         """
@@ -89,8 +107,23 @@ class JobViewSet(viewsets.ModelViewSet):
         skills = SkillRequirement.objects.filter(job=job)
         serializer = SkillRequirementSerializer(skills, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def applications_count(self, request, pk=None):
+        """
+        Retourne le nombre de candidatures pour cette offre
+        """
+        job = self.get_object()
+        count = CandidateApplication.objects.filter(job=job).count()
+        return Response({'count': count}, status=status.HTTP_200_OK)
 
 
+# Affichage des différents d'emplois postés par les candidats
+class JobListViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Job.objects.all()
+    serializer_class = JobSerializer
+    permission_classes = [AllowAny]
+    
 
 # Candidation à une offre par l'utilisateur
 class CandateApplicationViewSet(viewsets.ModelViewSet):
@@ -112,13 +145,13 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Vous avez déjà postulé à cette offre."}, status=status.HTTP_400_BAD_REQUEST)
         
         # Calcul du score avec AHP 
-        score = calculate_candidate_score(candidate, job)
+        ahp_score = calculate_candidate_score(candidate, job)
         
         # Créer la candidature
         application = CandidateApplication.objects.create(
             candidate=candidate,
             job=job,
-            score=score
+            ahp_score=ahp_score
         )
         
         # Mettre à jour le classement après l'ajout de la nouvelle candidature 
@@ -127,7 +160,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(application)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     
-    @action(detail=False, methods=['get'], permission_classes=[AllowAny])    
+    @action(detail=False, methods=['get'], permission_classes=[IsCandidate])    
     def my_applications(self, request):
         """
         Lister les candidature du candidat connecté
@@ -137,20 +170,20 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
     
-    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
+    @action(detail=True, methods=['get'], permission_classes=[IsEmployer])
     def list_for_job(self, request, pk=None):
         """
         Lister toutes les candidatures pour une offre spécifique
         """
         job = Job.objects.get(id=pk)
-        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        applications = CandidateApplication.objects.filter(job=job).order_by('-ahp_score')
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)
     
     
     def update_rankings(self, job):
         """Mise à jour du classement des candidatures après une nouvelle soumission"""
-        applications = CandidateApplication.objects.filter(job=job).order_by('-score')
+        applications = CandidateApplication.objects.filter(job=job).order_by('-ahp_score')
         for rank, application in enumerate(applications, start=1):
             application.rank = rank
             application.save()   
