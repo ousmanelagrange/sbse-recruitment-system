@@ -42,6 +42,20 @@ class JobViewSet(viewsets.ModelViewSet):
 
         serializer.save(employer=user.employer_profile)
 
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        """Activer/Désactiver une offre"""
+        job = self.get_object()
+        job.is_active = not job.is_active
+        job.save()
+        return Response({'status': 'success', 'is_active': job.is_active})
+
+    @action(detail=False, methods=['get'])
+    def active_jobs(self, request):
+        """Liste des offres actives"""
+        jobs = self.get_queryset().filter(is_active=True)
+        serializer = self.get_serializer(jobs, many=True)
+        return Response(serializer.data)
     
     def update(self, request, *args, **kwargs):
         """
@@ -93,6 +107,15 @@ class JobViewSet(viewsets.ModelViewSet):
         skills = SkillRequirement.objects.filter(job=job)
         serializer = SkillRequirementSerializer(skills, many=True)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def applications_count(self, request, pk=None):
+        """
+        Retourne le nombre de candidatures pour cette offre
+        """
+        job = self.get_object()
+        count = CandidateApplication.objects.filter(job=job).count()
+        return Response({'count': count}, status=status.HTTP_200_OK)
 
 
 # Affichage des différents d'emplois postés par les candidats
