@@ -72,47 +72,103 @@
 # print(answer)
 
 
-import requests
-import json
+# import requests
+# import json
 
-import os
+# import os
 
-# Charger les variables d'environnement depuis le fichier .env
-
-
-# Récupérer la clé API depuis la variable d'environnement
-API_KEY = ""
-API_KEY = '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'
+# # Charger les variables d'environnement depuis le fichier .env
 
 
-# URL de l'API OpenAI
-API_URL = 'https://api.openai.com/v1/chat/completions'
+# # Récupérer la clé API depuis la variable d'environnement
+# API_KEY = ""
+# API_KEY = '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'
 
-def get_chatgpt_response(message):
-    headers = {
-        'Content-Type': 'application/json',
-        'Authorization': f'Bearer {API_KEY}'
-    }
 
-    data = {
-        "model": "tts-1",  # ou "gpt-4"
-        "messages": [{"role": "user", "content": message}]
-    }
+# # URL de l'API OpenAI
+# API_URL = 'https://api.openai.com/v1/chat/completions'
 
-    response = requests.post(API_URL, headers=headers, data=json.dumps(data))
+# def get_chatgpt_response(message):
+#     headers = {
+#         'Content-Type': 'application/json',
+#         'Authorization': f'Bearer {API_KEY}'
+#     }
 
-    if response.status_code == 200:
-        response_data = response.json()
-        return response_data['choices'][0]['message']['content']
-    else:
-        print(f"Erreur {response.status_code}: {response.text}")
-        return None
+#     data = {
+#         "model": "tts-1",  # ou "gpt-4"
+#         "messages": [{"role": "user", "content": message}]
+#     }
 
-if __name__ == "__main__":
-    user_message = input("User message: ")
-    gpt_response = get_chatgpt_response(user_message)
+#     response = requests.post(API_URL, headers=headers, data=json.dumps(data))
+
+#     if response.status_code == 200:
+#         response_data = response.json()
+#         return response_data['choices'][0]['message']['content']
+#     else:
+#         print(f"Erreur {response.status_code}: {response.text}")
+#         return None
+
+# if __name__ == "__main__":
+#     user_message = input("User message: ")
+#     gpt_response = get_chatgpt_response(user_message)
     
-    if gpt_response:
-        print("Réponse de ChatGPT:", gpt_response)
-    else:
-        print("Erreur lors de la récupération de la réponse.")
+#     if gpt_response:
+#         print("Réponse de ChatGPT:", gpt_response)
+#     else:
+#         print("Erreur lors de la récupération de la réponse.")
+
+
+import fitz  # PyMuPDF
+import spacy
+import pandas as pd
+
+# Charger le modèle de langue
+nlp = spacy.load("en_core_web_sm")
+
+# Fonction pour extraire le texte d'un PDF
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with fitz.open(pdf_path) as doc:
+        for page in doc:
+            text += page.get_text()
+    return text
+
+# Fonction pour extraire les compétences
+def extract_skills(cv_text):
+    skills = []
+    for sent in cv_text.split("\n"):
+        if "Skills:" in sent:
+            skills_section = sent.split("Skills:")[1]
+            skills = [skill.strip() for skill in skills_section.split(",")]
+    return skills
+
+# Fonction pour extraire l'expérience
+def extract_experience(cv_text):
+    experience = []
+    for sent in cv_text.split("\n"):
+        if "Experience:" in sent:
+            experience_section = cv_text.split("Experience:")[1]
+            experience_lines = experience_section.strip().split("\n")
+            for line in experience_lines:
+                if line.strip() and not line.startswith("Skills"):
+                    experience.append(line.strip())
+            break
+    return experience
+
+# Chemin vers le fichier PDF
+pdf_path = "path/to/your/cv.pdf"
+
+# Extraire le texte du PDF
+cv_text = extract_text_from_pdf(pdf_path)
+
+# Extraire les compétences et l'expérience
+skills = extract_skills(cv_text)
+experience = extract_experience(cv_text)
+
+# Créer un DataFrame pour afficher les résultats
+df = pd.DataFrame({
+    "Skills": skills,
+    "Experience": experience
+})
+
+print(df)
