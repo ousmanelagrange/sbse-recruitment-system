@@ -116,7 +116,7 @@ class CandidateApplication(models.Model):
     rank = models.IntegerField(null=True, blank=True) # classement
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)    
-    skill_scores = JSONField(default=dict) 
+    skill_scores = JSONField(default=dict) # Dictionnaire pour stocker les scores des compétences
     
     def __str__(self):
         return f"{self.candidate.user.username} - {self.job.title}"
