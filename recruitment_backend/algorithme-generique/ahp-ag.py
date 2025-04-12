@@ -1,5 +1,6 @@
 import random
 import matplotlib.pyplot as plt
+from math import sqrt
 
 # Étape 1 : Offre d'emploi fictive et poids AHP
 weights = {
@@ -23,7 +24,13 @@ candidates = [
     {"name": "Ian", "java_skills": 6, "experience": 7, "database_skills": 4, "languages": 3, "references": 4},
     {"name": "Julia", "java_skills": 5, "experience": 6, "database_skills": 3, "languages": 4, "references": 3},
     {"name": "Kevin", "java_skills": 7, "experience": 8, "database_skills": 5, "languages": 2, "references": 5},
-    {"name": "Liam", "java_skills": 4, "experience": 5, "database_skills": 3, "languages": 4, "references": 3}
+    {"name": "Liam", "java_skills": 4, "experience": 5, "database_skills": 3, "languages": 4, "references": 3},
+    {"name": "Mona", "java_skills": 8, "experience": 9, "database_skills": 6, "languages": 3, "references": 5},
+    {"name": "Leo", "java_skills": 7, "experience": 8, "database_skills": 5, "languages": 4, "references": 4},
+    {"name": "Sophie", "java_skills": 6, "experience": 7, "database_skills": 4, "languages": 3, "references": 4},
+    {"name": "Nina", "java_skills": 3, "experience": 4, "database_skills": 2, "languages": 5, "references": 2},
+    {"name": "Oscar", "java_skills": 4, "experience": 5, "database_skills": 3, "languages": 4, "references": 3},
+    {"name": "Zoe", "java_skills": 2, "experience": 3, "database_skills": 1, "languages": 5, "references": 1}
 ]
 
 # Normalisation des valeurs entre 0 et 1
@@ -39,10 +46,8 @@ def satisfaction_function(candidate):
     """
     Calcule le niveau de satisfaction d'un candidat.
     La satisfaction est basée sur la somme des caractéristiques pondérées.
-    
     Formule utilisée :
         satisfaction = Σ (valeur_caractéristique_normalisée * poids_correspondant)
-    
     Objectif : Maximiser cette valeur.
     """
     # Valeurs minimales et maximales pour chaque caractéristique
@@ -53,13 +58,11 @@ def satisfaction_function(candidate):
         "languages": (2, 5),
         "references": (2, 5)
     }
-
     # Calcul du score normalisé pour chaque caractéristique
     normalized_scores = {
         key: normalize(candidate[key], min_max_values[key][0], min_max_values[key][1])
         for key in weights.keys()
     }
-
     # Satisfaction totale
     satisfaction = sum(normalized_scores[key] * weights[key] for key in weights.keys())
     return satisfaction
@@ -69,10 +72,8 @@ def conflict_function(candidate):
     """
     Calcule le niveau de conflit d'un candidat.
     Un conflit survient lorsque certaines caractéristiques ne respectent pas les exigences minimales.
-    
     Formule utilisée :
         conflit = Σ (pénalités pour chaque critère non satisfait)
-    
     Objectif : Minimiser cette valeur (idéalement proche de 0).
     """
     conflict = 0
@@ -89,10 +90,8 @@ def fitness(individual):
     """
     Calcule le score fitness d'un candidat en combinant la fonction de satisfaction
     et la fonction de conflit.
-    
     Formule utilisée :
         fitness = satisfaction - (conflit * facteur_pénalité)
-    
     Objectif : Maximiser cette valeur.
     """
     satisfaction = satisfaction_function(individual)
@@ -118,7 +117,6 @@ for i, candidate in enumerate(sorted_candidates[:10], start=1):
 # Graphique représentatif des scores fitness
 names = [candidate["name"] for candidate in sorted_candidates]
 scores = [candidate["fitness_score"] for candidate in sorted_candidates]
-
 plt.figure(figsize=(12, 6))
 plt.bar(names, scores, color='skyblue')
 plt.title("Scores Fitness des candidats")
@@ -133,10 +131,11 @@ plt.show()
 initial_population = sorted_candidates[:10]
 
 # Paramètres de l'algorithme génétique
-POPULATION_SIZE = 15  # Augmentation de la taille de la population pour plus de diversité
-GENERATIONS = 20      # Augmentation du nombre de générations pour mieux converger
+POPULATION_SIZE = 15  # Taille de la population
+GENERATIONS = 20      # Nombre de générations
 CROSSOVER_RATE = 0.8  # Probabilité de croisement
-MUTATION_RATE = 0.2   # Augmentation légère de la probabilité de mutation
+MUTATION_RATE = 0.2   # Probabilité de mutation
+ELITE_SIZE = 2        # Nombre d'élites conservés à chaque génération
 
 # Sélection par tournoi
 def tournament_selection(population, k=3):
@@ -182,7 +181,7 @@ def mutate(individual):
 
 # Algorithme génétique principal
 def genetic_algorithm():
-    population = l_population
+    population = initial_population
     best_individual = None
     best_fitness = float('-inf')
     best_per_generation = []  # Pour suivre le meilleur individu de chaque génération
@@ -190,11 +189,16 @@ def genetic_algorithm():
     for generation in range(GENERATIONS):
         new_population = []
 
+        # Étape 1 : Élitisme - Conservation des meilleurs individus
+        sorted_population = sorted(population, key=lambda x: fitness(x), reverse=True)
+        elites = sorted_population[:ELITE_SIZE]
+        new_population.extend(elites)
+
+        # Étape 2 : Remplir le reste de la population
         while len(new_population) < POPULATION_SIZE:
             # Sélection par tournoi
             parent1 = tournament_selection(population)
             parent2 = tournament_selection(population)
-
             # Croisement
             if random.random() < CROSSOVER_RATE:
                 child1, child2 = single_point_crossover(parent1, parent2)
@@ -202,8 +206,8 @@ def genetic_algorithm():
             else:
                 new_population.extend([parent1, parent2])
 
-            # Mutation
-            for individual in new_population:
+            # Mutation (sauf pour les élites)
+            for individual in new_population[len(elites):]:
                 if random.random() < MUTATION_RATE:
                     mutate(individual)
 
@@ -215,19 +219,22 @@ def genetic_algorithm():
         if fitness(current_best) > best_fitness:
             best_individual = current_best
             best_fitness = fitness(current_best)
-
         best_per_generation.append((generation + 1, best_individual["name"], best_fitness))
+
+        # Affichage des résultats de la génération actuelle
         print(f"Génération {generation + 1} : Meilleur candidat = {best_individual['name']} (Score = {best_fitness:.2f})")
+        print(f"Élites retenus : {[elite['name'] for elite in elites]}")
 
     # Graphique des meilleurs scores par génération
     generations, names, scores = zip(*best_per_generation)
     plt.figure(figsize=(10, 6))
-    plt.plot(generations, scores, marker='o', color='b')
+    plt.plot(generations, scores, marker='o', color='b', label="Meilleur score")
     plt.title("Évolution du meilleur score par génération")
     plt.xlabel("Génération")
     plt.ylabel("Meilleur score Fitness")
     plt.xticks(generations)
     plt.grid()
+    plt.legend()
     plt.show()
 
     return best_individual
