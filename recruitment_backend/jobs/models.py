@@ -1,4 +1,5 @@
 from django.db import models
+from django.forms import JSONField
 from users.models import EmployerProfile, CandidateProfile
 
 
@@ -22,6 +23,7 @@ class Job(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deadline = models.DateField() # Date limite pour postuler
     published_at = models.DateTimeField(auto_now_add=True)
+    
     
     
     def __str__(self):
@@ -49,9 +51,14 @@ class Constraint(models.Model):
     type = models.CharField(max_length=10, choices=CONSTRAINT_TYPE_CHOICES)
     description = models.TextField(blank=True)
     weight = models.FloatField(default=1.0) #Poids de la contrainte dans le calcul du score (pour AHP)
-    
+    name = models.CharField(max_length=255)
+    max = models.FloatField() # maximun de la valeur du critere
+    min=models.FloatField()
+    priority=models.FloatField()
+
     def __str__(self):
         return f"{self.description} - ({self.get_type_display()})"
+    
     
 """
 ➡️ Ce modèle permettra de spécifier les compétences attendues pour un poste donné.
@@ -64,6 +71,17 @@ class SkillRequirement(models.Model):
     )
     name = models.CharField(max_length=255)
     weight = models.FloatField() # Poids dans le calcul du score(pour AHP)
+    max = models.FloatField() # maximun de la valeur du critere
+    min=models.FloatField()
+    priority=models.FloatField()
+
+    def get_skill_requirements(self):
+        """
+        Retourne toutes les compétences requises pour ce job.
+        """
+        return self.name.all()
+    def get_weight(self):
+        return self.weight
     
    
     
@@ -98,6 +116,14 @@ class CandidateApplication(models.Model):
     rank = models.IntegerField(null=True, blank=True) # classement
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)    
+    skill_scores = JSONField(default=dict) 
     
     def __str__(self):
         return f"{self.candidate.user.username} - {self.job.title}"
+    def initialize_skill_scores(self):
+        """
+        Initialise les scores des compétences en fonction des SkillRequirements du job.
+        """
+        skill_requirements = SkillRequirement.all()
+        self.skill_scores = {skill.name: 0 for skill in skill_requirements }
+        self.save()

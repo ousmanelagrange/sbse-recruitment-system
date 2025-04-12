@@ -1,7 +1,9 @@
 from django.shortcuts import render
 from jobs.models import CandidateProfile
-
-# This module contains the genetic algorithm implementation for candidate optimization.
+from jobs.models import SkillRequirement
+from jobs.models import Job
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 import random
 import numpy as np
 import math
@@ -31,35 +33,28 @@ MIN_DISTANCE = 2.0          # Distance minimale entre deux candidats pour garant
 AMELIORATION_SEUIL = 0.1   # 10% d'amélioration minimale relative requise
 STAGNATION_LIMIT = 2  # Nombre de générations consécutives sans amélioration suffisante
 
-#on recupere les criteres
-RANGES = {
-    'experience': (0, 10),
-    'technique': (0, 10),
-    'soft_skills': (0, 10),
-    'communication': (0, 10)
-}
 
-#on recupere les criteres pour chaque jobs avec son poids AHP
-POIDS_CRITERES = {
-    'experience': 0.4,
-    'technique': 0.3,
-    'soft_skills': 0.2,
-    'communication': 0.1
-}
 
-#onfixe les seuils minimaux pour chaque critere
-SEUILS = {
-    'experience': 7,
-    'technique': 6,
-    'communication': 5
-}
+skill_requirements = SkillRequirement.objects.filter(id)
 
-#on fixe les penalites pour chaque critere
+# Construire dynamiquement RANGES à partir des critères
+RANGES = {skill.name: (skill.min, skill.max) for skill in skill_requirements}
+# Récupérer dynamiquement les critères pour un job spécifique
+
+
+# Construire dynamiquement POIDS_CRITERES à partir des critères
+POIDS_CRITERES = {skill.name: skill.weight for skill in skill_requirements}
+
+# Construire dynamiquement SEUILS à partir des critères
+SEUILS = {skill.name: skill.min * 0.9 for skill in skill_requirements}  # 10% inférieur à la valeur minimale
+
+# Construire dynamiquement COEF_PENALITES à partir des critères
 COEF_PENALITES = {
-    'experience': 2.0,
-    'technique': 1.5,
-    'communication': 1.0
+    skill.name: 0.5 * skill.min + 0.5 * skill.max  # Combinaison linéaire entre min et max
+    for skill in skill_requirements
 }
+
+
 
 # ---------------------------
 # Fonctions
@@ -185,9 +180,20 @@ def genetic_algorithm():
 
     return best_global
 
-# if __name__ == "__main__":
-#     best, fit = genetic_algorithm()
-#     print("\n🏆 Meilleur candidat trouvé :")
-#     print(f"Génération: {best['generation']} | Fitness: {fit:.2f} | Chromosome: {best['chromosome']}")
 
 
+@api_view(['GET'])
+def run_genetic_algorithm(request):
+    """
+    Exécute l'algorithme génétique et retourne le meilleur candidat.
+    """
+    best_candidate = genetic_algorithm()  # Exécute l'algorithme génétique
+    if best_candidate is None:
+        return Response({"error": "Aucun candidat trouvé."}, status=404)
+
+    # Préparer la réponse avec le meilleur candidat
+    response_data = {
+        "generation": best_candidate['generation'],
+        "chromosome": best_candidate['chromosome'],
+    }
+    return Response(response_data, status=200)
