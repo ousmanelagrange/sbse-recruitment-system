@@ -1,6 +1,5 @@
 import random
 import matplotlib.pyplot as plt
-from math import sqrt
 
 # Étape 1 : Offre d'emploi fictive et poids AHP
 weights = {
@@ -52,11 +51,11 @@ def satisfaction_function(candidate):
     """
     # Valeurs minimales et maximales pour chaque caractéristique
     min_max_values = {
-        "java_skills": (3, 8),
-        "experience": (4, 9),
-        "database_skills": (2, 6),
-        "languages": (2, 5),
-        "references": (2, 5)
+        "java_skills": (1, 10),
+        "experience": (1, 10),
+        "database_skills": (1, 10),
+        "languages": (1, 5),
+        "references": (1, 5)
     }
     # Calcul du score normalisé pour chaque caractéristique
     normalized_scores = {
@@ -112,7 +111,7 @@ for i, candidate in enumerate(sorted_candidates[:10], start=1):
     print(f"{i}. {candidate['name']} - Score Fitness : {candidate['fitness_score']:.2f}")
     print(f"   Raison : Fortes compétences en Java ({candidate['java_skills']}), "
           f"expérience solide ({candidate['experience']}), "
-          f"bonnes connaissances en bases de données ({candidate['database_skills']}).\n")
+          f"bonnes connaissances en bases de données ({candidate['database_skills']}).")
 
 # Graphique représentatif des scores fitness
 names = [candidate["name"] for candidate in sorted_candidates]
@@ -128,14 +127,14 @@ plt.tight_layout()
 plt.show()
 
 # Population initiale pour l'algorithme génétique
-initial_population = sorted_candidates[:10]
-
-# Paramètres de l'algorithme génétique
-POPULATION_SIZE = 15  # Taille de la population
-GENERATIONS = 20      # Nombre de générations
-CROSSOVER_RATE = 0.8  # Probabilité de croisement
-MUTATION_RATE = 0.2   # Probabilité de mutation
-ELITE_SIZE = 2        # Nombre d'élites conservés à chaque génération
+# Population initiale pour l'algorithme génétique
+POPULATION_SIZE = min(20, len(candidates))  # Limite la taille de la population au nombre de candidats disponibles
+initial_population = random.sample(candidates, POPULATION_SIZE)
+GENERATIONS = 50      # Nombre de générations
+CROSSOVER_RATE = 0.9  # Probabilité de croisement
+MUTATION_RATE = 0.3   # Probabilité de mutation
+ELITE_SIZE = 1        # Nombre d'élites conservés à chaque génération
+NUM_POSTS = 5         # Nombre de postes disponibles (peut être ajusté)
 
 # Sélection par tournoi
 def tournament_selection(population, k=3):
@@ -160,91 +159,83 @@ def single_point_crossover(parent1, parent2):
 # Mutation
 def mutate(individual):
     """
-    Modifie aléatoirement une caractéristique d'un individu pour introduire de la diversité.
+    Modifie aléatoirement plusieurs caractéristiques d'un individu pour introduire de la diversité.
     Les modifications sont limitées pour éviter des valeurs invalides.
     """
-    attribute = random.choice(list(individual.keys()))
-    if isinstance(individual[attribute], int):
-        individual[attribute] += random.choice([-1, 1])
-        # Assure que les valeurs restent dans des plages valides
-        if attribute == "java_skills":
-            individual[attribute] = max(1, min(10, individual[attribute]))
-        elif attribute == "experience":
-            individual[attribute] = max(1, min(10, individual[attribute]))
-        elif attribute == "database_skills":
-            individual[attribute] = max(1, min(10, individual[attribute]))
-        elif attribute == "languages":
-            individual[attribute] = max(1, min(5, individual[attribute]))
-        elif attribute == "references":
-            individual[attribute] = max(1, min(5, individual[attribute]))
+    attributes = list(individual.keys())
+    num_mutations = random.randint(1, len(attributes))
+    for _ in range(num_mutations):
+        attribute = random.choice(attributes)
+        if isinstance(individual[attribute], int):
+            individual[attribute] += random.choice([-1, 1])
+            # Assure que les valeurs restent dans des plages valides
+            if attribute == "java_skills":
+                individual[attribute] = max(1, min(10, individual[attribute]))
+            elif attribute == "experience":
+                individual[attribute] = max(1, min(10, individual[attribute]))
+            elif attribute == "database_skills":
+                individual[attribute] = max(1, min(10, individual[attribute]))
+            elif attribute == "languages":
+                individual[attribute] = max(1, min(5, individual[attribute]))
+            elif attribute == "references":
+                individual[attribute] = max(1, min(5, individual[attribute]))
     return individual
 
 # Algorithme génétique principal
 def genetic_algorithm():
     population = initial_population
-    best_individual = None
-    best_fitness = float('-inf')
-    best_per_generation = []  # Pour suivre le meilleur individu de chaque génération
+    best_individuals = []
+    previous_best_score = None
+    stagnation_count = 0
+    MAX_STAGNATION = 5
 
     for generation in range(GENERATIONS):
         new_population = []
-
-        # Étape 1 : Élitisme - Conservation des meilleurs individus
         sorted_population = sorted(population, key=lambda x: fitness(x), reverse=True)
         elites = sorted_population[:ELITE_SIZE]
         new_population.extend(elites)
 
-        # Étape 2 : Remplir le reste de la population
         while len(new_population) < POPULATION_SIZE:
-            # Sélection par tournoi
             parent1 = tournament_selection(population)
             parent2 = tournament_selection(population)
-            # Croisement
             if random.random() < CROSSOVER_RATE:
                 child1, child2 = single_point_crossover(parent1, parent2)
                 new_population.extend([child1, child2])
             else:
                 new_population.extend([parent1, parent2])
 
-            # Mutation (sauf pour les élites)
             for individual in new_population[len(elites):]:
                 if random.random() < MUTATION_RATE:
                     mutate(individual)
 
-        # Mise à jour de la population
         population = new_population
+        current_best = sorted_population[:NUM_POSTS]
+        best_individuals = sorted(current_best + best_individuals, key=lambda x: fitness(x), reverse=True)[:NUM_POSTS]
 
-        # Suivi du meilleur individu de cette génération
-        current_best = max(population, key=lambda x: fitness(x))
-        if fitness(current_best) > best_fitness:
-            best_individual = current_best
-            best_fitness = fitness(current_best)
-        best_per_generation.append((generation + 1, best_individual["name"], best_fitness))
+        current_best_score = fitness(best_individuals[0])
+        if previous_best_score is not None and current_best_score <= previous_best_score:
+            stagnation_count += 1
+        else:
+            stagnation_count = 0
+        previous_best_score = current_best_score
 
-        # Affichage des résultats de la génération actuelle
-        print(f"Génération {generation + 1} : Meilleur candidat = {best_individual['name']} (Score = {best_fitness:.2f})")
+        print(f"Génération {generation + 1} : Meilleurs candidats = {[ind['name'] for ind in best_individuals]}")
         print(f"Élites retenus : {[elite['name'] for elite in elites]}")
 
-    # Graphique des meilleurs scores par génération
-    generations, names, scores = zip(*best_per_generation)
-    plt.figure(figsize=(10, 6))
-    plt.plot(generations, scores, marker='o', color='b', label="Meilleur score")
-    plt.title("Évolution du meilleur score par génération")
-    plt.xlabel("Génération")
-    plt.ylabel("Meilleur score Fitness")
-    plt.xticks(generations)
-    plt.grid()
-    plt.legend()
-    plt.show()
+        if stagnation_count >= MAX_STAGNATION:
+            print(f"Arrêt anticipé à la génération {generation + 1} en raison de la stagnation.")
+            break
 
-    return best_individual
+    return best_individuals
 
 # Exécution de l'algorithme génétique
-best_candidate = genetic_algorithm()
-print("\nMeilleur candidat trouvé après l'algorithme génétique :")
-print(f"Nom : {best_candidate['name']}")
-print(f"Score Fitness : {best_candidate['fitness_score']:.2f}")
-print("Raisons :")
-print(f"- Excellentes compétences en Java ({best_candidate['java_skills']}) correspondant à la priorité 1.")
-print(f"- Expérience professionnelle solide ({best_candidate['experience']}) correspondant à la priorité 2.")
-print(f"- Bonnes connaissances en bases de données ({best_candidate['database_skills']}) correspondant à la priorité 3.")
+best_candidates = genetic_algorithm()
+
+# Affichage des meilleurs profils pour un poste donné
+print("\nMeilleurs candidats trouvés après l'algorithme génétique :")
+for i, candidate in enumerate(best_candidates, start=1):
+    print(f"{i}. {candidate['name']} - Score Fitness : {fitness(candidate):.2f}")
+    print(f"   Raisons :")
+    print(f"   - Excellentes compétences en Java ({candidate['java_skills']}) correspondant à la priorité 1.")
+    print(f"   - Expérience professionnelle solide ({candidate['experience']}) correspondant à la priorité 2.")
+    print(f"   - Bonnes connaissances en bases de données ({candidate['database_skills']}) correspondant à la priorité 3.")
