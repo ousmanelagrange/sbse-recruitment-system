@@ -1,174 +1,48 @@
-# import openai
-# import pdfplumber
+import os
+import google.generativeai as genai
+from pypdf import PdfReader
 
-# # Configurez votre clé API OpenAI
-# openai.api_key = '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'
+# 1. Configuration de l'API
+os.environ['GOOGLE_API_KEY'] = ''  # Ne pas exposer ta vraie clé ici publiquement ;)
+genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
+# 2. Lecture du PDF
+def extraire_texte_pdf(chemin_pdf):
+    texte = ""
+    try:
+        with open(chemin_pdf, 'rb') as fichier_pdf:
+            lecteur_pdf = PdfReader(fichier_pdf)
+            for page in lecteur_pdf.pages:
+                contenu = page.extract_text()
+                if contenu:
+                    texte += contenu + "\n"
+    except Exception as e:
+        print(f"Erreur lors de la lecture du PDF: {e}")
+        return None
+    return texte
 
-# def extract_text_from_pdf(pdf_path):
-#     with pdfplumber.open(pdf_path) as pdf:
-#         text = ""
-#         for page in pdf.pages:
-#             text += page.extract_text()
-#     return text
+# 3. Traitement du PDF
+chemin_pdf = 'D:\\Cours\\M2\\Projet\\Depot\\master_doc\\newReference\\fertig2018.pdf'
+texte_pdf = extraire_texte_pdf(chemin_pdf)
 
-# def ask_question_from_pdf(pdf_path, question):
-#     # Extraire le texte du PDF
-#     pdf_text = extract_text_from_pdf(pdf_path)
+# 4. Utilisation correcte de Gemini
+if texte_pdf:
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro-001')
+        chat = model.start_chat()
 
-#     # Demander à GPT-3 de répondre à la question sur le PDF
-#     response = openai.ChatCompletion.create(
-#         model="davinci-003",  # Ou "gpt-4" selon votre modèle préféré
-#         messages=[
-#             {"role": "system", "content": "Vous êtes un assistant AI qui répond aux questions basées sur un CV."},
-#             {"role": "user", "content": f"Voici le contenu du CV :\n{pdf_text}\n\nQuestion : {question}"}
-#         ]
-#     )
+        prompt = (
+            "voici un article,  donnez le resultat  chaque partie en json "
+            "\n\n"
+            f"{texte_pdf[:12000]}"  # Gemini a une limite de tokens ! On limite à ~12k caractères.
+        )
 
-#     # Renvoyer la réponse de GPT-3
-#     return response['choices'][0]['message']['content']
+        print("Envoi à Gemini, en cours...")
+        response = chat.send_message(prompt)
+        print("✅ Résultat de Gemini :\n")
+        print(response.text)
 
-# # Exemple d'utilisation
-# pdf_path = r"C:\Users\NICK-TECH\Downloads\Documents\DONGMO.pdf"
-# question = "Quelles sont les compétences du candidat en json ? je ne veux ni commentaire ni explication ni label. je veux juste le json"
-# answer = ask_question_from_pdf(pdf_path, question)
-# print(answer)
-
-
-# import pdfplumber
-# from transformers import pipeline
-
-# # Charger le modèle GPT-2 via Hugging Face
-# generator = pipeline("text-generation", model="gpt2")
-
-# # Fonction pour extraire le texte du PDF
-# def extract_text_from_pdf(pdf_path):
-#     with pdfplumber.open(pdf_path) as pdf:
-#         text = ""
-#         for page in pdf.pages:
-#             text += page.extract_text()
-#     return text
-
-# # Fonction pour poser une question à GPT-2 et obtenir une réponse
-# def ask_question_from_pdf(pdf_path, question):
-#     # Extraire le texte du PDF
-#     pdf_text = extract_text_from_pdf(pdf_path)
-
-#     # Créer un prompt à partir du contenu du PDF et de la question
-#     prompt = f"Voici le contenu du CV :\n{pdf_text}\n\nQuestion : {question}"
-
-#     # Utiliser GPT-2 pour générer une réponse
-#     response = generator(prompt, max_length=500, num_return_sequences=1)
-
-#     # Renvoyer la réponse générée par GPT-2
-#     return response[0]['generated_text']
-
-# # Exemple d'utilisation
-# pdf_path = r"C:\Users\NICK-TECH\Downloads\Documents\DONGMO.pdf"
-# question = "Quelles sont les compétences du candidat en json ? je ne veux ni commentaire ni explication ni label. je veux juste le json"
-# question = "Resolver l'equation x+1=2"
-# answer = ask_question_from_pdf(pdf_path, question)
-# print("La reponse: \n")
-# print(answer)
-
-
-# import requests
-# import json
-
-# import os
-
-# # Charger les variables d'environnement depuis le fichier .env
-
-
-# # Récupérer la clé API depuis la variable d'environnement
-# API_KEY = ""
-# API_KEY = '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'
-
-
-# # URL de l'API OpenAI
-# API_URL = 'https://api.openai.com/v1/chat/completions'
-
-# def get_chatgpt_response(message):
-#     headers = {
-#         'Content-Type': 'application/json',
-#         'Authorization': f'Bearer {API_KEY}'
-#     }
-
-#     data = {
-#         "model": "tts-1",  # ou "gpt-4"
-#         "messages": [{"role": "user", "content": message}]
-#     }
-
-#     response = requests.post(API_URL, headers=headers, data=json.dumps(data))
-
-#     if response.status_code == 200:
-#         response_data = response.json()
-#         return response_data['choices'][0]['message']['content']
-#     else:
-#         print(f"Erreur {response.status_code}: {response.text}")
-#         return None
-
-# if __name__ == "__main__":
-#     user_message = input("User message: ")
-#     gpt_response = get_chatgpt_response(user_message)
-    
-#     if gpt_response:
-#         print("Réponse de ChatGPT:", gpt_response)
-#     else:
-#         print("Erreur lors de la récupération de la réponse.")
-
-
-import fitz  # PyMuPDF
-import spacy
-import pandas as pd
-
-# Charger le modèle de langue
-nlp = spacy.load("en_core_web_sm")
-
-# Fonction pour extraire le texte d'un PDF
-def extract_text_from_pdf(pdf_path):
-    text = ""
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            text += page.get_text()
-    return text
-
-# Fonction pour extraire les compétences
-def extract_skills(cv_text):
-    skills = []
-    for sent in cv_text.split("\n"):
-        if "Skills:" in sent:
-            skills_section = sent.split("Skills:")[1]
-            skills = [skill.strip() for skill in skills_section.split(",")]
-    return skills
-
-# Fonction pour extraire l'expérience
-def extract_experience(cv_text):
-    experience = []
-    for sent in cv_text.split("\n"):
-        if "Experience:" in sent:
-            experience_section = cv_text.split("Experience:")[1]
-            experience_lines = experience_section.strip().split("\n")
-            for line in experience_lines:
-                if line.strip() and not line.startswith("Skills"):
-                    experience.append(line.strip())
-            break
-    return experience
-
-# Chemin vers le fichier PDF
-pdf_path = "path/to/your/cv.pdf"
-
-# Extraire le texte du PDF
-cv_text = extract_text_from_pdf(pdf_path)
-
-# Extraire les compétences et l'expérience
-skills = extract_skills(cv_text)
-experience = extract_experience(cv_text)
-
-# Créer un DataFrame pour afficher les résultats
-df = pd.DataFrame({
-    "Skills": skills,
-    "Experience": experience
-})
-
-print(df)
+    except Exception as e:
+        print(f"Erreur lors de l’appel à Gemini : {e}")
+else:
+    print("❌ Aucun texte extrait du PDF.")
