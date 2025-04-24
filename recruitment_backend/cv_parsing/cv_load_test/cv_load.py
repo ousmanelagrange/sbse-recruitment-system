@@ -3,7 +3,7 @@ import google.generativeai as genai
 from pypdf import PdfReader
 
 # 1. Configuration de l'API
-os.environ['GOOGLE_API_KEY'] = ''  # Ne pas exposer ta vraie clé ici publiquement ;)
+os.environ['GOOGLE_API_KEY'] = 'AIzaSyC_ZhkHoe5aTdBJnA74F098w8uVq_WhA6M'  # Ne pas exposer ta vraie clé ici publiquement ;)
 genai.configure(api_key=os.environ['GOOGLE_API_KEY'])
 
 # 2. Lecture du PDF
