@@ -22,7 +22,9 @@ def extraire_texte_pdf(chemin_pdf):
     return texte
 
 # 3. Traitement du PDF
-chemin_pdf = 'D:\\Cours\\M2\\Projet\\Depot\\master_doc\\newReference\\fertig2018.pdf'
+#chemin_pdf = 'D:\\Cours\\M2\\Projet\\Depot\\master_doc\\newReference\\fertig2018.pdf'
+chemin_pdf = 'D:\\Projets Ganalis\\DOCS\\fin\\Djouda\\CV Djouda.pdf'
+
 texte_pdf = extraire_texte_pdf(chemin_pdf)
 
 # 4. Utilisation correcte de Gemini
@@ -32,7 +34,7 @@ if texte_pdf:
         chat = model.start_chat()
 
         prompt = (
-            "voici un article,  donnez le resultat  chaque partie en json "
+            "Soit le cv suivant, je voudrais que vous extraiyez les infromations sous forme de json avec les champs:  experence professionnelle, competense technique, niveau de langue, localisation,certification,niveau d'etude. si les informations sur un champs n'existent pas, mettez null "
             "\n\n"
             f"{texte_pdf[:12000]}"  # Gemini a une limite de tokens ! On limite à ~12k caractères.
         )
