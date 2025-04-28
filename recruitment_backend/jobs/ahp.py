@@ -27,13 +27,13 @@ def calculate_candidate_score(candidate, job):
 
 def meets_hard_criteria(candidate, constraint):
     # Exemple : Vérification de l'expérience professionnelle dans le CV
-    if constraint.description.lower() in candidate.bio.lower():
+    if constraint.value.lower() in candidate.bio.lower():
         return True
     return False
 
 def evaluate_soft_criteria(candidate, constraint):
     # Exemple : Vérification des compétences douces (adaptabilité, communication)
-    if constraint.description.lower() in candidate.bio.lower():
+    if constraint.value.lower() in candidate.bio.lower():
         return 0.8
     return 0.2
 
