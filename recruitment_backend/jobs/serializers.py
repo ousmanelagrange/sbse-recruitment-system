@@ -35,7 +35,7 @@ class JobSerializer(serializers.ModelSerializer):
         
         # Créer les contraintes si elles n'existent pas déjà
         for constraint_data in constraints_data:
-            if not Constraint.objects.filter(job=job, description=constraint_data['description']).exists():
+            if not Constraint.objects.filter(job=job, name=constraint_data['name']).exists():
                 Constraint.objects.create(job=job, **constraint_data)
         
         # Créer les compétences si elles n'existent pas déjà

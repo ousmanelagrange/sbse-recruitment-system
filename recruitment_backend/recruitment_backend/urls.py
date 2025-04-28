@@ -30,6 +30,7 @@ urlpatterns = [
     path('api/auth/', include('authentication.urls')),
     path('api/', include('users.urls')),
     path('api/', include('jobs.urls')),
+    path('api/', include('ahp_evaluation.urls')),
     
     # Documentation Swagger
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),

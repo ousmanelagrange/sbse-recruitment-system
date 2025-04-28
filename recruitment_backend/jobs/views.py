@@ -8,7 +8,7 @@ from .serializers import JobSerializer, ConstraintSerializer, SkillRequirementSe
 from .ahp import calculate_candidate_score
 from users.permissions import IsEmployer, IsCandidate
 from users.models import CandidateProfile, EmployerProfile, User
-
+from django.shortcuts import get_object_or_404
 
 # Gestion des annonces par l'employer
 class JobViewSet(viewsets.ModelViewSet):
@@ -175,7 +175,7 @@ class CandateApplicationViewSet(viewsets.ModelViewSet):
         """
         Lister toutes les candidatures pour une offre spécifique
         """
-        job = Job.objects.get(id=pk)
+        job = get_object_or_404(Job, id=pk)
         applications = CandidateApplication.objects.filter(job=job).order_by('-ahp_score')
         serializer = self.get_serializer(applications, many=True)
         return Response(serializer.data)

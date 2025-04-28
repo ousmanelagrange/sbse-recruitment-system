@@ -47,11 +47,12 @@ class Constraint(models.Model):
         related_name='constraints'
     )
     type = models.CharField(max_length=10, choices=CONSTRAINT_TYPE_CHOICES)
-    description = models.TextField(blank=True)
+    value = models.CharField(max_length=255) # Valeur de la contrainte (ex: "Oui", "Non")
+    name = models.CharField(max_length=255) # Nom de la contrainte (ex: "Mobilité géographique", "Langue")
     weight = models.FloatField(default=1.0) #Poids de la contrainte dans le calcul du score (pour AHP)
     
     def __str__(self):
-        return f"{self.description} - ({self.get_type_display()})"
+        return f"{self.name} - ({self.get_type_display()})"
     
 """
 ➡️ Ce modèle permettra de spécifier les compétences attendues pour un poste donné.
@@ -63,6 +64,7 @@ class SkillRequirement(models.Model):
         related_name='skill_requirements'
     )
     name = models.CharField(max_length=255)
+    value = models.CharField(max_length=255) # Valeur de la compétence (ex: "Expert", "Intermédiaire", "Débutant")
     weight = models.FloatField() # Poids dans le calcul du score(pour AHP)
     
    
