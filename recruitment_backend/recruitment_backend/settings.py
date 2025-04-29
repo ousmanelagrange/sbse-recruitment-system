@@ -51,7 +51,7 @@ REST_FRAMEWORK = {
 
 # Configuration SimpleJWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # Durée de validité du token d'accès
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=1440),  # Durée de validité du token d'accès
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # Durée de validité du token de rafraîchissement
     'ROTATE_REFRESH_TOKENS': True,                    # Rafraîchir le token après chaque usage
     'BLACKLIST_AFTER_ROTATION': True,                 # Désactiver le token rafraîchi
